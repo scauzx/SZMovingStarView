@@ -9,7 +9,6 @@ import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.LruCache;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
@@ -18,14 +17,16 @@ import java.util.ArrayList;
 import java.util.Random;
 
 /**
- * Created by scauzx on 2017/9/23.
+ *
+ * @author scauzx
+ * @date 2017/9/23
  */
 
 public class MovingStarView extends View {
     private LruCache<String,Bitmap> mBitmapCache;
     private int[] drawableIds = new int[]{R.drawable.first,R.drawable.second,R.drawable.third,R.drawable.four,R.drawable.five};
     private ArrayList<StarInfo> mStarInfos =  new ArrayList<>();
-    private boolean iSFirstDraw = false;
+    private boolean mInited = false;
     private ValueAnimator valueAnimator;
 
     private static final float[][] STAR_LOCATION = new float[][] {
@@ -58,6 +59,9 @@ public class MovingStarView extends View {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+    }
+
+    public void onDestory(){
         if (mBitmapCache != null) {
             if (mBitmapCache.size() > 0) {
                 mBitmapCache.evictAll();
@@ -69,9 +73,18 @@ public class MovingStarView extends View {
         }
     }
 
+    public void onPause() {
+        mPause = true;
+    }
+
+    public void onResume() {
+        mPause = false;
+    }
+
 
     private void init() {
-        int maxMemory = (int)Runtime.getRuntime().maxMemory(); //app运行期间的最大内存
+        //app运行期间的最大内存
+        int maxMemory = (int)Runtime.getRuntime().maxMemory();
         mBitmapCache = new LruCache<String,Bitmap>(maxMemory/8){
             @Override
             protected int sizeOf(String key, Bitmap value) {
@@ -136,7 +149,7 @@ public class MovingStarView extends View {
         StarInfo starInfo;
         for (int i = 0; i < STAR_LOCATION.length; i++) {
             starInfo = mStarInfos.get(i);
-            if (!iSFirstDraw) {
+            if (!mInited) {
                 starInfo.xLocation = getWidth()*starInfo.xLocation;
                 starInfo.yLocation = getHeight()*starInfo.yLocation;
             }
@@ -156,16 +169,19 @@ public class MovingStarView extends View {
             canvas.drawBitmap(starInfo.bitmap.get(),dst,src,paint);
 
         }
-        if(!iSFirstDraw){
+        if (!mInited) {
             startMoving();
+            mInited = true;
         }
-        iSFirstDraw = true;
     }
 
 
     private void resetDraw(){
+        if (mStarInfos == null) {
+            return;
+        }
         StarInfo starInfo;
-        for(int i = 0 ;i < STAR_LOCATION.length;i++){
+        for (int i = 0; i < mStarInfos.size(); i++) {
             starInfo = mStarInfos.get(i);
             starInfo.xLocation += starInfo.xSpeed;
             starInfo.yLocation += starInfo.ySpeed;
@@ -175,6 +191,10 @@ public class MovingStarView extends View {
 
     }
 
+    /**
+     * Activity是否处于onPause状态，是的话就不需要进行计算绘制
+     */
+    public boolean mPause = false;
 
     private void startMoving(){
         valueAnimator = ValueAnimator.ofFloat(0,1f);
@@ -186,8 +206,10 @@ public class MovingStarView extends View {
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                resetDraw();
-                postInvalidate();
+                if (!mPause) {
+                    resetDraw();
+                    postInvalidate();
+                }
             }
         });
         valueAnimator.start();
@@ -195,17 +217,39 @@ public class MovingStarView extends View {
     }
 
     class StarInfo{
-        // 缩放比例
+        /**
+         * 缩放比例
+         */
         float sizePercent;
-        // x位置
+
+        /**
+         * x位置
+         */
         float xLocation;
-        // y位置
+
+        /**
+         * y位置
+         */
         float yLocation;
-        // 透明度
+
+        /**
+         * 透明度
+         */
         float alpha;
 
-        int xSpeed; //x轴速度
-        int ySpeed;//y轴速度
+        /**
+         *  x轴速度
+         */
+        int xSpeed;
+
+        /**
+         *  y轴速度
+         */
+        int ySpeed;
+
+        /**
+         * 显示的图片
+         */
         WeakReference<Bitmap> bitmap;
     }
 
