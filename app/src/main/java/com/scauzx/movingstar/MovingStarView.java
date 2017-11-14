@@ -58,7 +58,15 @@ public class MovingStarView extends View {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mBitmapCache.evictAll();
+        if (mBitmapCache != null) {
+            if (mBitmapCache.size() > 0) {
+                mBitmapCache.evictAll();
+            }
+            mBitmapCache = null;
+        }
+        if (mStarInfos != null) {
+            mStarInfos.clear();
+        }
     }
 
 
@@ -71,7 +79,7 @@ public class MovingStarView extends View {
             }
         };
         Bitmap bitmap;
-        for(int i = 0; i < drawableIds.length; i++){
+        for (int i = 0; i < drawableIds.length; i++) {
             bitmap = ((BitmapDrawable)getResources().getDrawable(drawableIds[i])).getBitmap();
             mBitmapCache.put(String.valueOf(i),bitmap);
         }
@@ -81,7 +89,7 @@ public class MovingStarView extends View {
 
     private void initStarInfo() {
         StarInfo starInfo;
-        for(int i = 0; i < STAR_LOCATION.length ; i++){
+        for (int i = 0; i < STAR_LOCATION.length ; i++) {
             starInfo = new StarInfo();
             starInfo.sizePercent = getSizePercent(0.4f,0.9f);
             starInfo.alpha = getSizePercent(0.3f, 0.8f);
@@ -96,9 +104,9 @@ public class MovingStarView extends View {
     private int getSpeed(){
         Random random = new Random();
         int result;
-        if(random.nextBoolean()){
+        if (random.nextBoolean()) {
             result = -random.nextInt(5);
-        }else{
+        } else {
             result = random.nextInt(5);
         }
         return  result;
@@ -126,13 +134,13 @@ public class MovingStarView extends View {
         Rect dst = new Rect();
         Rect src = new Rect();
         StarInfo starInfo;
-        for(int i = 0 ; i < STAR_LOCATION.length ;i++){
+        for (int i = 0; i < STAR_LOCATION.length; i++) {
             starInfo = mStarInfos.get(i);
-            if(!iSFirstDraw){
+            if (!iSFirstDraw) {
                 starInfo.xLocation = getWidth()*starInfo.xLocation;
                 starInfo.yLocation = getHeight()*starInfo.yLocation;
             }
-            if(starInfo.bitmap == null || starInfo.bitmap.get() == null){
+            if (starInfo.bitmap == null || starInfo.bitmap.get() == null) {
                 bitmap = Bitmap.createScaledBitmap( mBitmapCache.get(String.valueOf(i%5)),(int)( mBitmapCache.get(String.valueOf(i%5)).getWidth() * starInfo.sizePercent),(int)( mBitmapCache.get(String.valueOf(i%5)).getHeight() * starInfo.sizePercent),true);
                 starInfo.bitmap = new WeakReference<>(bitmap);
             }
